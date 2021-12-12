@@ -1,24 +1,86 @@
-import logo from './logo.svg';
-import './App.css';
+import { useState, useEffect } from 'react'
+import { BrowserRouter as Router, Route, Routes} from 'react-router-dom' // get router
+import Header from './components/Header'
+import Tasks from './components/Tasks';
+import AddTask from './components/AddTask';
+import Footer from './components/Footer';
+import About from './components/About';
 
 function App() {
+  const[showAddTask, setShowAddTask] = useState(false)
+  const [tasks, setTasks] = useState([
+    
+])
+  // get effect, connect with backend
+  useEffect(() => {
+    const getTasks = async () => {
+      const tasksFromServer = await fetchTasks()
+      setTasks(tasksFromServer)
+    }
+
+    getTasks()
+  }, [])
+
+  // Fetch data
+  const fetchTasks = async() => {
+    const res = await fetch('http://localhost:5000/tasks')
+    const data = await res.json()
+
+    return data
+  }
+
+// Add Task
+const addTask = async (task) => {
+  const res = await fetch('http://localhost:5000/tasks', {
+    method: 'POST',
+    headers: {
+      'Content-type': 'application/json'
+    },
+    // get the JavaScript Object to the Json String and pass to backend
+    body: JSON.stringify(task)
+  })
+  // get the return json value
+  const data = await res.json()
+  setTasks([...tasks, data])
+
+  //const id = Math.floor(Math.random() * 10000) + 1
+  //const newTask = { id, ...task }
+  //setTasks([...tasks, newTask])
+}
+
+
+// Delete Task
+const deleteTask = async (id) => {
+  await fetch(`http://localhost:5000/tasks/${id}`, {
+    method: 'DELETE',
+  })
+
+  setTasks(tasks.filter((task) => task.id !== id))
+}
+
+//Taggle Reminder
+const toggleReminder = (id) => {
+  setTasks(tasks.map((task) => task.id === id ? {...task, reminder:!task.reminder} : task))
+}
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <div className="container">
+        <Header title='CBR' onAdd={() => setShowAddTask(!showAddTask)} showAdd={showAddTask}/>
+        
+        <Routes>
+          <Route path='/' exact element={
+            <>
+              {showAddTask ? <AddTask onAdd={addTask}/> : ''}
+              {tasks.length > 0 ? <Tasks tasks={tasks} onDelete={deleteTask} onToggle={toggleReminder}/> : 'No Tasks To Show'
+           } 
+           </>
+          }/>
+          <Route path='/about' element={<><About /></>} />
+        </Routes>
+        <Footer/>
+      </div>
+    </Router>
   );
 }
 
